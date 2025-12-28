@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+	<title>Decipher Dash</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
+	
+	<!-- Made with Construct, the game and app creator :: https://www.construct.net -->
+	<meta name="generator" content="Scirra Construct">
+
+	<meta name="author" content="Viridino Studios">
+
+	<link rel="manifest" href="appmanifest.json">
+	<link rel="apple-touch-icon" sizes="128x128" href="icons/icon-128.png">
+	<link rel="apple-touch-icon" sizes="256x256" href="icons/icon-256.png">
+	<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
+	<link rel="icon" type="image/png" href="icons/icon-512.png">
+
+	<link rel="stylesheet" href="style.css?v=15">
+	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+
+
+</head> 
+ 
+<body>
+
+	<div id="game-menu">
+		<div id="menu-poster"></div>
+		<button id="play-btn">PLAY</button>
+		<button id="about-btn">ABOUT</button>
+		
+		<div id="loading-screen" style="display: none;">
+			<img src="images/loading.gif" alt="Loading...">
+		</div>
+
+		<div id="about-modal" class="modal" style="display: none;">
+			<div class="modal-content">
+				<span class="close-btn">&times;</span>
+				<div class="book-wrapper">
+					<!-- Static background image -->
+					<img id="book-bg" src="images/about_screenshot.png" alt="About Game">
+					
+					<!-- Flip animation GIF (hidden by default) -->
+					<img id="book-flip-anim" src="images/book_flip.gif" alt="Flipping..." style="display: none;">
+
+					<div class="book-text" id="book-content-1">
+						<div class="page left-page">
+							<p>Hi, we're a young indie game team from Vietnam! I wish I could say that, but currently I'm just a solo developer creating small products out of passion and looking for future opportunities and teammates for the studio.</p>
+						</div>
+						<div class="page right-page">
+							<p>We hope you have a good experience with our studio's products. You can support the studio with the donation link below; the amount doesn't matter, but 40% of the project will go to the SOS Children's Village in Vietnam.</p>
+							<button class="nav-btn next-btn">NEXT &gt;</button>
+						</div>
+					</div>
+
+					<div class="book-text" id="book-content-2" style="display: none;">
+						<div class="page left-page">
+							<p>The remaining 60% will be invested in the studio's next project.</p>
+							<p>Donate: <a href="https://buymeacoffee.com/IdoSleepStudio" target="_blank">buymeacoffee.com/IdoSleepStudio</a></p>
+							<p>Contact if you are interested:<br>
+							Email: <a href="mailto:kirvu05@gmail.com">kirvu05@gmail.com</a><br>
+							Threads: <a href="https://www.threads.net/@kirvu_05" target="_blank">kirvu_05</a></p>
+						</div>
+						<div class="page right-page">
+							<p>I Do Sleep Studio,<br>
+							We sleep less so you can play more :3</p>
+							<p style="font-size: 0.8em; margin-top: 10px;">P/S: Some resources in Decipher Dash are taken from Pinterest and I can't found its credits though trying. If you are one of the artists who own these resources, please contact me to receive royalties.</p>
+							<button class="nav-btn prev-btn">&lt; PREV</button>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+    <script>
+		// Generate stars dynamically
+		(function() {
+			const menu = document.getElementById('game-menu');
+			for (let i = 0; i < 150; i++) {
+				const star = document.createElement('div');
+				star.className = 'star';
+				const size = Math.random() * 2 + 1 + 'px'; // 1px to 3px
+				star.style.width = size;
+				star.style.height = size;
+				star.style.left = Math.random() * 100 + '%';
+				star.style.top = Math.random() * 100 + '%';
+				star.style.animationDuration = (Math.random() * 3 + 1) + 's'; // 1s to 4s
+				star.style.animationDelay = (Math.random() * 3) + 's';
+				menu.appendChild(star);
+			}
+		})();
+
+        // Preload game resources but don't start
+        let gameStarted = false;
+
+        document.getElementById('play-btn').addEventListener('click', function(e) {
+			e.stopPropagation(); // Prevent bubbling if necessary
+            if (gameStarted) return;
+            gameStarted = true;
+            
+			// Hide buttons
+			document.getElementById('play-btn').style.display = 'none';
+			document.getElementById('about-btn').style.display = 'none';
+			
+			// Show loading screen
+			document.getElementById('loading-screen').style.display = 'flex';
+
+			// Wait 6 seconds then fade out
+			setTimeout(() => {
+				const menu = document.getElementById('game-menu');
+				menu.style.transition = 'opacity 0.5s ease';
+				menu.style.opacity = '0';
+				
+				setTimeout(() => {
+					menu.style.display = 'none';
+				}, 500);
+
+				if (window.startC3Game) {
+					requestAnimationFrame(() => {
+						setTimeout(window.startC3Game, 50);
+					});
+				} else {
+					console.log("Game engine not loaded yet, waiting...");
+					var checkInterval = setInterval(function() {
+						if (window.startC3Game) {
+							window.startC3Game();
+							clearInterval(checkInterval);
+						}
+					}, 100);
+				}
+			}, 6000); // 6 seconds loading delay
+        });
+
+		// About Modal Logic
+		const aboutBtn = document.getElementById('about-btn');
+		const aboutModal = document.getElementById('about-modal');
+		const closeBtn = document.querySelector('.close-btn');
+
+		aboutBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			aboutModal.style.display = 'flex';
+		});
+
+		closeBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			aboutModal.style.display = 'none';
+		});
+
+		window.addEventListener('click', function(e) {
+			if (e.target == aboutModal) {
+				aboutModal.style.display = 'none';
+			}
+		});
+
+		// Book Flip Logic
+		const nextBtn = document.querySelector('.next-btn');
+		const prevBtn = document.querySelector('.prev-btn');
+		const bookContent1 = document.getElementById('book-content-1');
+		const bookContent2 = document.getElementById('book-content-2');
+		const bookBg = document.getElementById('book-bg');
+		const bookFlipAnim = document.getElementById('book-flip-anim');
+
+		function playFlipAnim(callback) {
+			// Hide static BG and current content
+			bookBg.style.display = 'none';
+			bookContent1.style.display = 'none';
+			bookContent2.style.display = 'none';
+			
+			// Show animation
+			bookFlipAnim.style.display = 'block';
+			// Reset GIF to play from start
+			const src = bookFlipAnim.src;
+			bookFlipAnim.src = '';
+			bookFlipAnim.src = src;
+
+			// Wait for animation (adjust time based on GIF duration, e.g., 1200ms)
+			setTimeout(() => {
+				bookFlipAnim.style.display = 'none';
+				bookBg.style.display = 'block';
+				if (callback) callback();
+			}, 1200);
+		}
+
+		nextBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			playFlipAnim(() => {
+				bookContent2.style.display = 'flex';
+			});
+		});
+
+		prevBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			playFlipAnim(() => {
+				bookContent1.style.display = 'flex';
+			});
+		});
+    </script>
+
+	
+
+<script>
+if (location.protocol.substr(0, 4) === "file")
+{
+	alert("Web exports won't work until you upload them. (When running on the file: protocol, browsers block many features from working for security reasons.)");
+}
+</script>
+	
+	<noscript>
+		<div id="notSupportedWrap">
+			<h2 id="notSupportedTitle">This content requires JavaScript</h2>
+			<p class="notSupportedMessage">JavaScript appears to be disabled. Please enable it to view this content.</p>
+		</div>
+	</noscript>
+	<script src="scripts/modernjscheck.js"></script>
+	<script src="scripts/supportcheck.js"></script>
+	<script src="scripts/offlineclient.js" type="module"></script>
+	<script src="scripts/main.js?v=2" type="module"></script>
+	<script src="scripts/register-sw.js" type="module"></script>
+
+</body> 
+</html>
