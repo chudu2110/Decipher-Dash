@@ -280,7 +280,18 @@
 										newBtn.addEventListener('click', (e) => {
 											e.stopPropagation();
 											console.log("Back to Menu Clicked");
-											location.reload();
+											
+											// Play click sound
+											if (clickSound) {
+												clickSound.currentTime = 0;
+												clickSound.volume = window.sfxVolume;
+												clickSound.play().catch(e => console.log("Click sound failed:", e));
+											}
+											
+											// Small delay to allow sound to play
+											setTimeout(() => {
+												location.reload();
+											}, 200);
 										});
 									}
 								}
