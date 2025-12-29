@@ -118,14 +118,14 @@ html[ioswebview] .c3htmlwrap > * {
 	left: 0;
 	width: 100%;
 	height: 100%;
-	background: url('images/Image_202512281320.webp') no-repeat center center;
-	background-size: contain;
+	background: url('images/Image_202512281320.webp') no-repeat center 25%;
+	background-size: cover;
 	z-index: 10;
 }
 
 #play-btn {
 	position: absolute;
-	bottom: 120px; /* Moved up */
+	bottom: 190px; /* Moved up */
 	left: 50px;
 	width: 220px; /* Fixed width */
 	padding: 15px 0; /* Vertical padding only, horizontal centered by width */
@@ -145,6 +145,26 @@ html[ioswebview] .c3htmlwrap > * {
 
 #about-btn {
 	position: absolute;
+	bottom: 120px;
+	left: 50px;
+	width: 220px; /* Fixed width matching Play button */
+	padding: 15px 0;
+	font-family: 'Press Start 2P', monospace;
+	font-size: 24px;
+	color: #ffd700; /* Gold */
+	background: transparent;
+	border: 4px solid #ffd700;
+	box-shadow: 0 0 10px #ffd700, inset 0 0 10px #ffd700;
+	text-transform: uppercase;
+	cursor: pointer;
+	z-index: 20;
+	transition: all 0.2s ease-in-out;
+	text-shadow: 0 0 5px #ffd700;
+	text-align: center;
+}
+
+#setting-btn {
+	position: absolute;
 	bottom: 50px;
 	left: 50px;
 	width: 220px; /* Fixed width matching Play button */
@@ -163,14 +183,14 @@ html[ioswebview] .c3htmlwrap > * {
 	text-align: center;
 }
 
-#play-btn:hover, #about-btn:hover {
+#play-btn:hover, #about-btn:hover, #setting-btn:hover {
 	background: #ffd700;
 	color: #000;
 	box-shadow: 0 0 20px #ffd700, inset 0 0 20px #ffd700;
 	transform: scale(1.1);
 }
 
-#play-btn:active, #about-btn:active {
+#play-btn:active, #about-btn:active, #setting-btn:active {
 	transform: scale(0.95);
 }
 
@@ -178,7 +198,7 @@ html[ioswebview] .c3htmlwrap > * {
 .modal {
 	display: none;
 	position: fixed;
-	z-index: 100;
+	z-index: 100000; /* Higher than game-menu (99999) */
 	left: 0;
 	top: 0;
 	width: 100%;
@@ -354,6 +374,35 @@ html[ioswebview] .c3htmlwrap > * {
 	object-fit: contain;
 }
 
+#spaceship-screen {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: none;
+	justify-content: center;
+	align-items: center;
+	z-index: 35;
+	background: #000;
+	overflow: hidden;
+}
+
+#spaceship-screen img, #spaceship-screen video {
+	width: 100%;
+	height: 100%;
+	object-fit: cover;
+}
+
+#spaceship-screen img {
+	animation: spaceship-pan 5s linear forwards;
+}
+
+@keyframes spaceship-pan {
+	0% { transform: scale(1.1) translate(0, 0); }
+	100% { transform: scale(1.2) translate(-20px, -20px); }
+}
+
 .star {
 	position: absolute;
 	background: white;
@@ -365,4 +414,195 @@ html[ioswebview] .c3htmlwrap > * {
 @keyframes twinkle {
 	0%, 100% { opacity: 0.2; transform: scale(0.8); }
 	50% { opacity: 1; transform: scale(1.2); }
+}
+
+/* Setting Modal Styles */
+.setting-wrapper {
+	position: relative;
+	display: block;
+	width: auto;
+	height: auto;
+}
+
+.setting-wrapper img {
+	width: auto;
+	height: auto;
+	max-width: 80vw;
+	max-height: 80vh;
+	object-fit: contain;
+	display: block;
+	border: 4px solid #ffd700;
+	box-shadow: 0 0 20px #ffd700;
+}
+
+.setting-content {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	justify-content: flex-start; /* Align to top */
+	align-items: center;
+	padding-top: 20%; /* Add padding to push content down slightly from the very top edge */
+}
+
+.volume-control {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 10px; /* Reduced gap */
+	font-family: 'Press Start 2P', monospace;
+	color: #ffd700;
+	text-shadow: 2px 2px 0 #000;
+	font-size: 0.8rem; /* Smaller font */
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px; /* Reduced padding */
+    border-radius: 8px; /* Smaller radius */
+    border: 2px solid #ffd700;
+}
+
+.volume-slider {
+	-webkit-appearance: none;
+	width: 200px; /* Reduced width */
+	height: 10px; /* Reduced height */
+	background: #2c1810;
+	outline: none;
+	border: 2px solid #ffd700;
+	border-radius: 0;
+}
+
+.volume-slider::-webkit-slider-thumb {
+	-webkit-appearance: none;
+	appearance: none;
+	width: 20px; /* Smaller thumb */
+	height: 20px;
+	background: #ffd700;
+	cursor: pointer;
+	border: 2px solid #000;
+	box-shadow: 0 0 5px #ffd700;
+}
+
+#game-over-screen {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: black;
+	z-index: 200000;
+	display: none;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+#game-over-countdown {
+	font-family: 'Press Start 2P', monospace;
+	color: #ffd700;
+	font-size: 40px;
+	text-align: center;
+	text-shadow: 4px 4px 0 #000;
+	z-index: 200001;
+	margin-top: 20px;
+	min-height: 40px; /* Prevent layout shift */
+	display: none; /* Controlled by JS */
+}
+
+#game-over-back-btn {
+	font-family: 'Press Start 2P', monospace;
+	font-size: 20px;
+	color: #ffd700;
+	background: transparent;
+	border: 4px solid #ffd700;
+	box-shadow: 0 0 10px #ffd700, inset 0 0 10px #ffd700;
+	padding: 15px 30px;
+	margin-top: 30px;
+	cursor: pointer;
+	text-transform: uppercase;
+	z-index: 200001;
+	transition: all 0.2s ease-in-out;
+	text-shadow: 0 0 5px #ffd700;
+	pointer-events: auto; /* Ensure clickable */
+}
+
+#game-over-back-btn:hover {
+	background: rgba(255, 215, 0, 0.2);
+	transform: scale(1.05);
+	box-shadow: 0 0 20px #ffd700, inset 0 0 20px #ffd700;
+}
+
+#game-over-screen img {
+	max-width: 60%;
+	max-height: 60%;
+	object-fit: contain;
+	filter: drop-shadow(0 0 20px #ff0000);
+	animation: pulse-death 2s infinite;
+}
+
+@keyframes pulse-death {
+	0% { transform: scale(1); filter: drop-shadow(0 0 20px #ff0000); }
+	50% { transform: scale(1.05); filter: drop-shadow(0 0 30px #ff0000); }
+	100% { transform: scale(1); filter: drop-shadow(0 0 20px #ff0000); }
+}
+
+#ingame-setting-icon {
+	position: fixed;
+	top: 20px;
+	right: 20px;
+	width: 50px;
+	height: 50px;
+	z-index: 99999;
+	cursor: pointer;
+	/* Removed border and shadow for cleaner look */
+	background: transparent;
+	transition: transform 0.2s;
+	display: none; /* Initially hidden, shown via JS */
+}
+
+#ingame-setting-icon img {
+	width: 100%;
+	height: 100%;
+	object-fit: contain; /* Changed to contain to preserve aspect ratio */
+	display: block;
+	filter: drop-shadow(0 0 5px #ffd700); /* Add drop shadow instead of box shadow */
+}
+
+#ingame-setting-icon:hover {
+	transform: scale(1.1);
+	/* Remove box-shadow hover effect */
+}
+
+#ingame-setting-icon:active {
+	transform: scale(0.9);
+}
+
+#player-hearts {
+	position: fixed;
+	top: 20px;
+	left: 20px;
+	display: flex;
+	gap: 10px;
+	z-index: 99999;
+	display: none; /* Initially hidden */
+}
+
+.heart-icon {
+	width: 40px;
+	height: 40px;
+	object-fit: contain;
+	/* Removed gold border to look cleaner, or add if desired */
+	/* border: 2px solid #ffd700; 
+	border-radius: 50%; */
+	filter: drop-shadow(0 0 5px #ffd700);
+}
+
+.volume-slider::-moz-range-thumb {
+	width: 20px; /* Smaller thumb */
+	height: 20px;
+	background: #ffd700;
+	cursor: pointer;
+	border: 2px solid #000;
+	box-shadow: 0 0 5px #ffd700;
 }

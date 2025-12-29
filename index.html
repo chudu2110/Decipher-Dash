@@ -16,7 +16,7 @@
 	<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
 	<link rel="icon" type="image/png" href="icons/icon-512.png">
 
-	<link rel="stylesheet" href="style.css?v=15">
+	<link rel="stylesheet" href="style.css?v=17">
 	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 
@@ -29,9 +29,85 @@
 		<div id="menu-poster"></div>
 		<button id="play-btn">PLAY</button>
 		<button id="about-btn">ABOUT</button>
+		<button id="setting-btn">SETTING</button>
 		
 		<div id="loading-screen" style="display: none;">
 			<img src="images/loading.gif" alt="Loading...">
+		</div>
+
+		<div id="spaceship-screen" style="display: none;">
+			<video id="outro-video" muted playsinline>
+				<source src="images/outro.mp4" type="video/mp4">
+			</video>
+		</div>
+	</div>
+
+		<!-- In-Game Setting Icon -->
+		<div id="ingame-setting-icon" style="display: none;">
+			<img src="icons/setting%20icon%202.png" alt="Settings">
+		</div>
+
+		<!-- Player Hearts (Lives) -->
+		<div id="player-hearts" style="display: none;">
+			<img src="icons/heart%202.png" class="heart-icon" id="heart-1">
+			<img src="icons/heart%202.png" class="heart-icon" id="heart-2">
+			<img src="icons/heart%202.png" class="heart-icon" id="heart-3">
+		</div>
+
+		<!-- Menu Music -->
+		<audio id="menu-music" loop>
+			<source src="Musics/menu music.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Level 1 Music -->
+		<audio id="level1-music" loop>
+			<source src="Musics/level1.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Intro Sound -->
+		<audio id="intro-sound">
+			<source src="Soundfx/playstation-3-start-61205.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Button Click Sound -->
+		<audio id="click-sound">
+			<source src="Soundfx/mouse-click-117076.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Pixel Death Sound -->
+		<audio id="pixel-death-sound">
+			<source src="Soundfx/pixel-death-66829.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Game Over Sound -->
+		<audio id="game-over-sound">
+			<source src="Soundfx/game-over-417465.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Game Over Screen -->
+		<div id="game-over-screen" style="display: none;">
+			<img src="icons/You_Died.png" alt="You Died">
+			<div id="game-over-countdown"></div>
+			<button id="game-over-back-btn" style="display: none;">BACK TO MENU</button>
+		</div>
+
+		<div id="setting-modal" class="modal" style="display: none;">
+			<div class="modal-content">
+				<span class="close-btn setting-close">&times;</span>
+				<div class="setting-wrapper">
+					<img src="images/setting UX.jpg" alt="Settings">
+					<div class="setting-content">
+						<div class="volume-control">
+							<label for="volume-slider">MUSIC VOLUME</label>
+							<input type="range" id="volume-slider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+						</div>
+						<div class="volume-control">
+							<label for="sfx-slider">SFX VOLUME</label>
+							<input type="range" id="sfx-slider" class="volume-slider" min="0" max="1" step="0.1" value="0.5">
+						</div>
+					</div>
+				</div>
+			</div>
 		</div>
 
 		<div id="about-modal" class="modal" style="display: none;">
@@ -72,7 +148,6 @@
 				</div>
 			</div>
 		</div>
-	</div>
 
     <script>
 		// Generate stars dynamically
@@ -92,51 +167,350 @@
 			}
 		})();
 
+		// Menu Music Logic
+		const menuMusic = document.getElementById('menu-music');
+		const level1Music = document.getElementById('level1-music');
+		const introSound = document.getElementById('intro-sound');
+		const clickSound = document.getElementById('click-sound');
+		const pixelDeathSound = document.getElementById('pixel-death-sound');
+		const gameOverSound = document.getElementById('game-over-sound');
+		menuMusic.volume = 0.5; // Default volume
+		
+		// Global Volume Variables
+		window.sfxVolume = 0.5;
+
+		// Global functions for Game Logic (to be called from C3 or detected)
+		window.playerLives = 3;
+
+		window.onPlayerDeath = function() {
+			console.log("Player Death Triggered");
+			if (pixelDeathSound) {
+				pixelDeathSound.currentTime = 0;
+				pixelDeathSound.volume = window.sfxVolume;
+				pixelDeathSound.play().catch(e => console.log("Pixel death play failed:", e));
+			}
+			if (level1Music) {
+				level1Music.pause();
+				level1Music.currentTime = 0;
+			}
+			
+			// Decrease Lives Logic
+			// Note: We process Game Over screen even if lives are already 0, 
+			// in case the screen was closed or needs to be refreshed.
+			if (window.playerLives > 0) {
+				// Prevent double damage in short timeframe
+				if (window.isTakingDamage) return;
+				window.isTakingDamage = true;
+				setTimeout(() => { window.isTakingDamage = false; }, 500);
+
+				const heart = document.getElementById('heart-' + window.playerLives);
+				if (heart) {
+					heart.style.visibility = 'hidden'; // Hide the heart
+				}
+				window.playerLives--;
+				console.log("Lives remaining: " + window.playerLives);
+			}
+
+			if (window.playerLives <= 0) {
+				console.log("Game Over Logic Triggered");
+				
+				if (window.isGameOverProcessing) {
+					console.log("Game Over already processing, skipping duplicate call.");
+					return;
+				}
+				window.isGameOverProcessing = true;
+				
+				// Show Game Over screen
+				const gameOverScreen = document.getElementById('game-over-screen');
+				const countdownEl = document.getElementById('game-over-countdown');
+				const backBtn = document.getElementById('game-over-back-btn');
+				
+				if (gameOverScreen) {
+					gameOverScreen.style.display = 'flex';
+					console.log("Game Over Screen Displayed (Flex)");
+					
+					// Force reset countdown element and button
+					if (countdownEl) {
+						countdownEl.style.display = 'none';
+						countdownEl.innerText = '';
+					}
+					if (backBtn) {
+						backBtn.style.display = 'none';
+					}
+					
+					// Play Game Over Sound
+					if (gameOverSound) {
+						gameOverSound.currentTime = 0;
+						gameOverSound.volume = window.sfxVolume;
+						gameOverSound.play().catch(e => console.log("Game over sound failed:", e));
+					}
+					
+					// Ensure music is off
+					if (level1Music) {
+						level1Music.pause();
+						level1Music.currentTime = 0;
+					}
+					
+					// Countdown Logic
+					console.log("Setting timeout for countdown...");
+					setTimeout(() => {
+						if (countdownEl) {
+							console.log("Starting Countdown Sequence: 3");
+							countdownEl.style.display = 'block';
+							let count = 3;
+							countdownEl.innerText = count;
+							
+							const interval = setInterval(() => {
+								count--;
+								console.log("Countdown: " + count);
+								if (count > 0) {
+									countdownEl.innerText = count;
+								} else {
+									clearInterval(interval);
+									countdownEl.style.display = 'none';
+									console.log("Countdown finished, showing Back button");
+									
+									if (backBtn) {
+										backBtn.style.display = 'block';
+										
+										// Clone to remove old listeners
+										const newBtn = backBtn.cloneNode(true);
+										backBtn.parentNode.replaceChild(newBtn, backBtn);
+										
+										newBtn.addEventListener('click', (e) => {
+											e.stopPropagation();
+											console.log("Back to Menu Clicked");
+											location.reload();
+										});
+									}
+								}
+							}, 1000);
+						} else {
+							console.error("Countdown Element Missing inside Timeout!");
+						}
+					}, 1000);
+				} else {
+					console.error("Game Over Screen Element Missing!");
+				}
+			}
+		};
+
+		window.onLevelRestart = function() {
+			console.log("Level Restart Triggered");
+			
+			// If lives are 0, do NOT restart the level music or logic normally,
+			// because we are in Game Over state.
+			if (window.playerLives <= 0) return;
+
+			// Note: We do NOT reset lives here, because restart happens on death.
+			// Only reset lives if it's a "Game Over" restart or manual restart from menu.
+			
+			if (level1Music) {
+				level1Music.volume = menuMusic.volume;
+				level1Music.play().catch(e => console.log("Level 1 music play failed:", e));
+			}
+		};
+		
+		// Function to reset game state (lives)
+		window.resetGame = function() {
+			window.playerLives = 3;
+			for (let i = 1; i <= 3; i++) {
+				const heart = document.getElementById('heart-' + i);
+				if (heart) heart.style.visibility = 'visible';
+			}
+			console.log("Game Reset: Lives restored");
+		};
+
+		// Attempt to play music on load
+		function playMusic() {
+			menuMusic.play().catch(e => {
+				console.log("Autoplay prevented:", e);
+				// Add one-time listener to start music on first interaction
+				document.addEventListener('click', function startMusic() {
+					menuMusic.play();
+					document.removeEventListener('click', startMusic);
+				}, { once: true });
+			});
+		}
+		playMusic();
+
         // Preload game resources but don't start
         let gameStarted = false;
 
-        document.getElementById('play-btn').addEventListener('click', function(e) {
+		document.getElementById('play-btn').addEventListener('click', function(e) {
 			e.stopPropagation(); // Prevent bubbling if necessary
+			
+			// Stop menu music
+			menuMusic.pause();
+			menuMusic.currentTime = 0;
+
+			// Reset game lives
+			window.resetGame();
+
+			// Play Intro Sound immediately
+			introSound.volume = sfxVolume;
+			introSound.play().catch(e => console.log("Intro sound play failed:", e));
+
+			// Play Level 1 Music with 3s delay
+			setTimeout(() => {
+				introSound.pause(); // Stop Intro Sound
+				introSound.currentTime = 0;
+				
+				level1Music.volume = menuMusic.volume;
+				level1Music.play().catch(e => console.log("Level 1 music play failed:", e));
+			}, 3000);
+
+			// Attempt to enter fullscreen
+			try {
+				var elem = document.documentElement;
+				if (elem.requestFullscreen) {
+					elem.requestFullscreen();
+				} else if (elem.webkitRequestFullscreen) { /* Safari */
+					elem.webkitRequestFullscreen();
+				} else if (elem.msRequestFullscreen) { /* IE11 */
+					elem.msRequestFullscreen();
+				}
+			} catch (err) {
+				console.log("Error attempting to enable fullscreen:", err);
+			}
+
             if (gameStarted) return;
             gameStarted = true;
             
 			// Hide buttons
 			document.getElementById('play-btn').style.display = 'none';
 			document.getElementById('about-btn').style.display = 'none';
+			document.getElementById('setting-btn').style.display = 'none';
 			
 			// Show loading screen
 			document.getElementById('loading-screen').style.display = 'flex';
 
 			// Wait 6 seconds then fade out
 			setTimeout(() => {
-				const menu = document.getElementById('game-menu');
-				menu.style.transition = 'opacity 0.5s ease';
-				menu.style.opacity = '0';
-				
-				setTimeout(() => {
-					menu.style.display = 'none';
-				}, 500);
+				// Hide loading screen
+				document.getElementById('loading-screen').style.display = 'none';
 
-				if (window.startC3Game) {
-					requestAnimationFrame(() => {
-						setTimeout(window.startC3Game, 50);
+				// Show spaceship screen
+				const spaceshipScreen = document.getElementById('spaceship-screen');
+				spaceshipScreen.style.display = 'flex';
+				const outroVideo = document.getElementById('outro-video');
+
+				const finishIntro = () => {
+					const menu = document.getElementById('game-menu');
+					menu.style.transition = 'opacity 0.5s ease';
+					menu.style.opacity = '0';
+					
+					setTimeout(() => {
+						menu.style.display = 'none';
+						spaceshipScreen.style.display = 'none';
+						if(outroVideo) outroVideo.pause();
+						
+						// Show in-game setting icon
+						const ingameSettingIcon = document.getElementById('ingame-setting-icon');
+						if (ingameSettingIcon) {
+							// ingameSettingIcon.style.display = 'block'; // Removed immediate show
+							console.log("In-game setting icon ready");
+						}
+
+						// Show player hearts
+						const playerHearts = document.getElementById('player-hearts');
+						if (playerHearts) {
+							// playerHearts.style.display = 'flex'; // Removed immediate show
+							console.log("Player hearts ready");
+						}
+					}, 500);
+
+					if (window.startC3Game) {
+						requestAnimationFrame(() => {
+							setTimeout(() => {
+                                window.startC3Game();
+                                
+                                // Show UI elements ONLY when game starts
+                                setTimeout(() => {
+                                    const ingameSettingIcon = document.getElementById('ingame-setting-icon');
+                                    const playerHearts = document.getElementById('player-hearts');
+                                    
+                                    if (ingameSettingIcon) ingameSettingIcon.style.display = 'block';
+                                    if (playerHearts) playerHearts.style.display = 'flex';
+                                    console.log("UI Elements displayed with game start");
+                                }, 100); // Small delay to sync with game canvas appearing
+                            }, 50);
+						});
+					} else {
+						console.log("Game engine not loaded yet, waiting...");
+						var checkInterval = setInterval(function() {
+							if (window.startC3Game) {
+								window.startC3Game();
+                                
+                                // Show UI elements ONLY when game starts
+                                setTimeout(() => {
+                                    const ingameSettingIcon = document.getElementById('ingame-setting-icon');
+                                    const playerHearts = document.getElementById('player-hearts');
+                                    
+                                    if (ingameSettingIcon) ingameSettingIcon.style.display = 'block';
+                                    if (playerHearts) playerHearts.style.display = 'flex';
+                                    console.log("UI Elements displayed with game start");
+                                }, 100);
+
+								clearInterval(checkInterval);
+							}
+						}, 100);
+					}
+				};
+
+				if (outroVideo) {
+					outroVideo.currentTime = 0;
+					outroVideo.onended = finishIntro;
+					outroVideo.play().catch(e => {
+						console.log("Video play failed:", e);
+						setTimeout(finishIntro, 4000);
 					});
 				} else {
-					console.log("Game engine not loaded yet, waiting...");
-					var checkInterval = setInterval(function() {
-						if (window.startC3Game) {
-							window.startC3Game();
-							clearInterval(checkInterval);
-						}
-					}, 100);
+					setTimeout(finishIntro, 4000);
 				}
 			}, 6000); // 6 seconds loading delay
         });
+		
+		// In-Game Setting Icon Logic
+		const ingameSettingIcon = document.getElementById('ingame-setting-icon');
+		
+		// Fallback: MutationObserver to ensure icon shows up if finishIntro logic is bypassed or delayed
+		const menu = document.getElementById('game-menu');
+		const observer = new MutationObserver(function(mutations) {
+			mutations.forEach(function(mutation) {
+				if (mutation.attributeName === "style") {
+					if (menu.style.display === 'none') {
+						if (settingModal.style.display !== 'flex') {
+							ingameSettingIcon.style.display = 'block';
+						}
+					} else {
+						ingameSettingIcon.style.display = 'none';
+					}
+				}
+			});
+		});
+		
+		observer.observe(menu, { attributes: true });
+
+		ingameSettingIcon.addEventListener('click', function(e) {
+			e.stopPropagation();
+			// Open setting modal
+			settingModal.style.display = 'flex';
+			ingameSettingIcon.style.display = 'none'; // Hide icon when modal is open
+			
+			// Play click sound
+			if (clickSound) {
+				clickSound.currentTime = 0;
+				clickSound.volume = sfxVolume;
+				clickSound.play().catch(e => {});
+			}
+		});
 
 		// About Modal Logic
 		const aboutBtn = document.getElementById('about-btn');
 		const aboutModal = document.getElementById('about-modal');
-		const closeBtn = document.querySelector('.close-btn');
+		// Use specific selector for about close button to avoid conflict
+		const closeBtn = aboutModal.querySelector('.close-btn');
 
 		aboutBtn.addEventListener('click', function(e) {
 			e.stopPropagation();
@@ -151,6 +525,76 @@
 		window.addEventListener('click', function(e) {
 			if (e.target == aboutModal) {
 				aboutModal.style.display = 'none';
+			}
+			if (e.target == settingModal) {
+				settingModal.style.display = 'none';
+			}
+		});
+
+		// Setting Modal Logic
+		const settingBtn = document.getElementById('setting-btn');
+		const settingModal = document.getElementById('setting-modal');
+		const settingCloseBtn = document.querySelector('.setting-close');
+		const volumeSlider = document.getElementById('volume-slider');
+
+		settingBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			settingModal.style.display = 'flex';
+		});
+
+		settingCloseBtn.addEventListener('click', function(e) {
+			e.stopPropagation();
+			settingModal.style.display = 'none';
+			
+			// If game is running (menu hidden), show the ingame icon again
+			if (menu.style.display === 'none') {
+				ingameSettingIcon.style.display = 'block';
+			}
+		});
+
+		volumeSlider.addEventListener('input', function(e) {
+			menuMusic.volume = e.target.value;
+			if (level1Music) level1Music.volume = e.target.value;
+		});
+
+		// Button Click Sound Logic
+		const menuButtons = [
+			document.getElementById('about-btn'),
+			document.getElementById('setting-btn'),
+			document.querySelector('.next-btn'),
+			document.querySelector('.prev-btn'),
+			document.querySelector('.setting-close'),
+			aboutModal.querySelector('.close-btn')
+		];
+		
+		// SFX Volume Control
+		const sfxSlider = document.getElementById('sfx-slider');
+		let sfxVolume = 0.5;
+
+		if (clickSound) clickSound.volume = sfxVolume;
+		if (introSound) introSound.volume = sfxVolume; // Intro sound is also SFX
+		if (pixelDeathSound) pixelDeathSound.volume = sfxVolume;
+		if (gameOverSound) gameOverSound.volume = sfxVolume;
+
+		sfxSlider.addEventListener('input', function(e) {
+			sfxVolume = e.target.value;
+			if (clickSound) clickSound.volume = sfxVolume;
+			if (introSound) introSound.volume = sfxVolume;
+			if (pixelDeathSound) pixelDeathSound.volume = sfxVolume;
+			if (gameOverSound) gameOverSound.volume = sfxVolume;
+		});
+
+		menuButtons.forEach(btn => {
+			if (btn) {
+				btn.addEventListener('click', () => {
+					if (clickSound) {
+						clickSound.currentTime = 0;
+						clickSound.volume = sfxVolume;
+						clickSound.play().catch(e => {
+							// Ignore autoplay restrictions
+						});
+					}
+				});
 			}
 		});
 
@@ -216,6 +660,7 @@ if (location.protocol.substr(0, 4) === "file")
 	<script src="scripts/modernjscheck.js"></script>
 	<script src="scripts/supportcheck.js"></script>
 	<script src="scripts/offlineclient.js" type="module"></script>
+	<script src="scripts/custom-hook.js"></script>
 	<script src="scripts/main.js?v=2" type="module"></script>
 	<script src="scripts/register-sw.js" type="module"></script>
 
