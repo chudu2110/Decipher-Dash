@@ -349,6 +349,13 @@
 		document.getElementById('play-btn').addEventListener('click', function(e) {
 			e.stopPropagation(); // Prevent bubbling if necessary
 			
+			// Play click sound
+			if (clickSound) {
+				clickSound.currentTime = 0;
+				clickSound.volume = sfxVolume;
+				clickSound.play().catch(e => console.log("Click sound failed:", e));
+			}
+			
 			// Stop menu music
 			menuMusic.pause();
 			menuMusic.currentTime = 0;
