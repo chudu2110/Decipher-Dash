@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8">
-	<title>Decipher Dash</title>
+	<title>Decipher Dash - UPDATED</title>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no">
 	
 	<!-- Made with Construct, the game and app creator :: https://www.construct.net -->
@@ -16,7 +16,7 @@
 	<link rel="apple-touch-icon" sizes="512x512" href="icons/icon-512.png">
 	<link rel="icon" type="image/png" href="icons/icon-512.png">
 
-	<link rel="stylesheet" href="style.css?v=17">
+	<link rel="stylesheet" href="style.css?v=20">
 	<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 
 
@@ -88,7 +88,7 @@
 		<div id="game-over-screen" style="display: none;">
 			<img src="icons/You_Died.png" alt="You Died">
 			<div id="game-over-countdown"></div>
-			<button id="game-over-back-btn" style="display: none;">BACK TO MENU</button>
+			<button id="game-over-back-btn">BACK TO MENU</button>
 		</div>
 
 		<div id="setting-modal" class="modal" style="display: none;">
@@ -229,7 +229,7 @@
 					gameOverScreen.style.display = 'flex';
 					console.log("Game Over Screen Displayed (Flex)");
 					
-					// Force reset countdown element and button
+					// Force reset elements
 					if (countdownEl) {
 						countdownEl.style.display = 'none';
 						countdownEl.innerText = '';
@@ -255,25 +255,23 @@
 					console.log("Setting timeout for countdown...");
 					setTimeout(() => {
 						if (countdownEl) {
-							console.log("Starting Countdown Sequence: 3");
+							console.log("Starting Countdown Sequence");
 							countdownEl.style.display = 'block';
 							let count = 3;
 							countdownEl.innerText = count;
 							
 							const interval = setInterval(() => {
 								count--;
-								console.log("Countdown: " + count);
 								if (count > 0) {
 									countdownEl.innerText = count;
 								} else {
 									clearInterval(interval);
-									countdownEl.style.display = 'none';
-									console.log("Countdown finished, showing Back button");
+									countdownEl.style.display = 'none'; // Hide countdown
 									
 									if (backBtn) {
-										backBtn.style.display = 'block';
+										backBtn.style.display = 'block'; // Show button
 										
-										// Clone to remove old listeners
+										// Clone button to remove old listeners
 										const newBtn = backBtn.cloneNode(true);
 										backBtn.parentNode.replaceChild(newBtn, backBtn);
 										
@@ -288,7 +286,7 @@
 												clickSound.play().catch(e => console.log("Click sound failed:", e));
 											}
 											
-											// Small delay to allow sound to play
+											// Delay 1000ms then reload
 											setTimeout(() => {
 												location.reload();
 											}, 1000);
@@ -299,7 +297,7 @@
 						} else {
 							console.error("Countdown Element Missing inside Timeout!");
 						}
-					}, 1000);
+					}, 2000);
 				} else {
 					console.error("Game Over Screen Element Missing!");
 				}
@@ -672,7 +670,7 @@ if (location.protocol.substr(0, 4) === "file")
 	<script src="scripts/supportcheck.js"></script>
 	<script src="scripts/offlineclient.js" type="module"></script>
 	<script src="scripts/custom-hook.js"></script>
-	<script src="scripts/main.js?v=2" type="module"></script>
+	<script src="scripts/main.js?v=3" type="module"></script>
 	<script src="scripts/register-sw.js" type="module"></script>
 
 </body> 
