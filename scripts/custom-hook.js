@@ -9,22 +9,26 @@
             return realRefTableFn;
         },
         set: function(fn) {
-            console.log("Trapped assignment of C3_GetObjectRefTable!");
-            
-            // Wrap the function
-            realRefTableFn = function() {
-                console.log("C3_GetObjectRefTable EXECUTION intercepted.");
-                const list = fn.apply(this, arguments);
+                console.log("Trapped assignment of C3_GetObjectRefTable!");
+                
+                // Wrap the function
+                realRefTableFn = function() {
+                    console.log("C3_GetObjectRefTable EXECUTION intercepted.");
+                    const list = fn.apply(this, arguments);
 
-                // Inject hooks into the returned list
-                if (window.C3 && window.C3.Plugins && window.C3.Plugins.System) {
-                    const restartFn = window.C3.Plugins.System.Acts.RestartLayout;
-                    const goToFn = window.C3.Plugins.System.Acts.GoToLayout;
-                    
-                    for (let i = 0; i < list.length; i++) {
-                        if (restartFn && list[i] === restartFn) {
-                        console.log("Hooking RestartLayout at index " + i);
-                        list[i] = function(...args) {
+                    // Inject hooks into the returned list
+                    if (window.C3 && window.C3.Plugins && window.C3.Plugins.System) {
+                        const restartFn = window.C3.Plugins.System.Acts.RestartLayout;
+                        const goToFn = window.C3.Plugins.System.Acts.GoToLayout;
+                    const spriteDestroyFn = window.C3.Plugins.Sprite && window.C3.Plugins.Sprite.Acts && window.C3.Plugins.Sprite.Acts.Destroy;
+                    const shapeDestroyFn = window.C3.Plugins.Shape3D && window.C3.Plugins.Shape3D.Acts && window.C3.Plugins.Shape3D.Acts.Destroy;
+                    const keyboardCnds = window.C3.Plugins.Keyboard && window.C3.Plugins.Keyboard.Cnds;
+                    const eightDirSimCtrlFn = window.C3.Behaviors && window.C3.Behaviors.EightDir && window.C3.Behaviors.EightDir.Acts && window.C3.Behaviors.EightDir.Acts.SimulateControl;
+                        
+                        for (let i = 0; i < list.length; i++) {
+                            if (restartFn && list[i] === restartFn) {
+                            console.log("Hooking RestartLayout at index " + i);
+                            list[i] = function(...args) {
                             console.log("Hook: RestartLayout Triggered!");
                             // Prevent actual restart if game over
                             if (window.playerLives <= 0) {
@@ -52,16 +56,43 @@
                             return ret;
                         };
                     }
+                    if (spriteDestroyFn && list[i] === spriteDestroyFn) {
+                        console.log("Hooking Sprite.Destroy at index " + i);
+                        const original = spriteDestroyFn;
+                        list[i] = function(...args) {
+                            try {
+                                const nameGuess = (this && (this.GetObjectClass?.().GetName?.() || this.GetObjectClassName?.() || this.name)) || "";
+                                if (nameGuess && /gem/i.test(String(nameGuess))) {
+                                    if (window.onRewardPickup) window.onRewardPickup();
+                                }
+                            } catch (err) {}
+                            return original.apply(this, args);
+                        };
                     }
-                } else {
-                    console.warn("C3 Plugins not ready during RefTable execution. Retrying via Acts directly later.");
-                }
+                            if (shapeDestroyFn && list[i] === shapeDestroyFn) {
+                                console.log("Hooking Shape3D.Destroy at index " + i);
+                                const originalShapeDestroy = shapeDestroyFn;
+                                list[i] = function(...args) {
+                                    try {
+                                        const nameGuess = (this && (this.GetObjectClass?.().GetName?.() || this.GetObjectClassName?.() || this.name)) || "";
+                                        if (nameGuess && /gem/i.test(String(nameGuess))) {
+                                            if (window.onRewardPickup) window.onRewardPickup();
+                                        }
+                                    } catch (err) {}
+                                    return originalShapeDestroy.apply(this, args);
+                                };
+                            }
+                            
+                        }
+                    } else {
+                        console.warn("C3 Plugins not ready during RefTable execution. Retrying via Acts directly later.");
+                    }
 
-                return list;
-            };
-        },
-        configurable: true
-    });
+                    return list;
+                };
+            },
+            configurable: true
+        });
 
     // Backup: Polling for direct Acts modification (in case RefTable hook missed or Plugins weren't ready)
     const interval = setInterval(() => {
@@ -104,39 +135,61 @@
                  acts.GoToLayout.hooked = true;
             }
         }
+        if (window.C3 && window.C3.Plugins && !window.__hookedDestroyOnce) {
+            try {
+                const spriteActs = window.C3.Plugins.Sprite?.Acts;
+                const shapeActs = window.C3.Plugins.Shape3D?.Acts;
+                const eightDirActs = window.C3.Behaviors?.EightDir?.Acts;
+                const keyboardCnds = window.C3.Plugins?.Keyboard?.Cnds;
+                if (spriteActs?.Destroy && !spriteActs.Destroy.hooked) {
+                    const original = spriteActs.Destroy;
+                    spriteActs.Destroy = function(...args) {
+                        try {
+                            const nameGuess = (this && (this.GetObjectClass?.().GetName?.() || this.GetObjectClassName?.() || this.name)) || "";
+                            if (nameGuess && /gem/i.test(String(nameGuess))) {
+                                if (window.onRewardPickup) window.onRewardPickup();
+                            }
+                        } catch (err) {}
+                        return original.apply(this, args);
+                    };
+                    spriteActs.Destroy.hooked = true;
+                }
+                if (shapeActs?.Destroy && !shapeActs.Destroy.hooked) {
+                    const originalShapeDestroy = shapeActs.Destroy;
+                    shapeActs.Destroy = function(...args) {
+                        try {
+                            const nameGuess = (this && (this.GetObjectClass?.().GetName?.() || this.GetObjectClassName?.() || this.name)) || "";
+                            if (nameGuess && /gem/i.test(String(nameGuess))) {
+                                if (window.onRewardPickup) window.onRewardPickup();
+                            }
+                        } catch (err) {}
+                        return originalShapeDestroy.apply(this, args);
+                    };
+                    shapeActs.Destroy.hooked = true;
+                }
+                
+                window.__hookedDestroyOnce = true;
+            } catch (err) {
+                console.warn("Error hooking destroy acts: ", err);
+            }
+        }
     }, 100);
 
     // Stop polling after 20 seconds
     setTimeout(() => clearInterval(interval), 20000);
 
-    // Force UI Sync Loop (Robustness for Setting Icon and Hearts)
     setInterval(() => {
         const menu = document.getElementById('game-menu');
         const icon = document.getElementById('ingame-setting-icon');
         const hearts = document.getElementById('player-hearts');
         const settingModal = document.getElementById('setting-modal');
-        const spaceshipScreen = document.getElementById('spaceship-screen');
-        const loadingScreen = document.getElementById('loading-screen');
-        
+        const canvas = document.querySelector('canvas');
         if (menu && icon && hearts && settingModal) {
-            const menuDisplay = window.getComputedStyle(menu).display;
-            const modalDisplay = window.getComputedStyle(settingModal).display;
-            const spaceshipDisplay = spaceshipScreen ? window.getComputedStyle(spaceshipScreen).display : 'none';
-            const loadingDisplay = loadingScreen ? window.getComputedStyle(loadingScreen).display : 'none';
-            
-            // Logic: Game is truly running ONLY if:
-            // 1. Menu is hidden
-            // 2. Loading screen is hidden
-            // 3. Spaceship screen is hidden
-            
-            const isGameTrulyRunning = (menuDisplay === 'none') && 
-                                       (loadingDisplay === 'none') && 
-                                       (spaceshipDisplay === 'none');
-
-            // If game is running (menu hidden)
-            if (isGameTrulyRunning) {
-                // Handle Setting Icon
-                if (modalDisplay === 'none') {
+            const menuHidden = window.getComputedStyle(menu).display === 'none';
+            const canvasReady = !!canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0 && window.getComputedStyle(canvas).display !== 'none' && window.getComputedStyle(canvas).visibility !== 'hidden';
+            const isGameRunning = menuHidden && canvasReady;
+            if (isGameRunning) {
+                if (window.getComputedStyle(settingModal).display === 'none') {
                     if (icon.style.display !== 'block') {
                         icon.style.display = 'block';
                         icon.style.zIndex = "99999";
@@ -146,21 +199,44 @@
                 } else {
                     if (icon.style.display !== 'none') icon.style.display = 'none';
                 }
-
-                // Handle Hearts (Always show in-game)
                 if (hearts.style.display !== 'flex') {
                     hearts.style.display = 'flex';
                     hearts.style.zIndex = "99999";
                     hearts.style.visibility = "visible";
                     hearts.style.opacity = "1";
-                    // console.log("CustomHook: Force showing hearts");
                 }
             } else {
-                // Menu is visible, hide in-game UI
                 if (icon.style.display !== 'none') icon.style.display = 'none';
                 if (hearts.style.display !== 'none') hearts.style.display = 'none';
             }
         }
     }, 500);
+
+    // Hook instance destroy for reward pickup (Gem/Reward)
+    (function hookInstanceDestroy() {
+        const HOOK_DELAY = 100;
+        const timer = setInterval(() => {
+            try {
+                if (self.IInstance && !self.__rewardDestroyHooked) {
+                    const originalDestroy = self.IInstance.prototype.destroy;
+                    self.IInstance.prototype.destroy = function(...args) {
+                        try {
+                            const objName = String(this?.objectType?.name || "").toLowerCase();
+                            if (objName.includes('gem') || objName.includes('reward')) {
+                                if (window.onRewardPickup) window.onRewardPickup();
+                            }
+                        } catch (err) {}
+                        return originalDestroy.apply(this, args);
+                    };
+                    self.__rewardDestroyHooked = true;
+                    clearInterval(timer);
+                }
+            } catch (err) {
+                // Keep trying until runtime ready
+            }
+        }, HOOK_DELAY);
+    })();
+
+    
 
 })();

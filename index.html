@@ -40,6 +40,10 @@
 				<source src="images/outro.mp4" type="video/mp4">
 			</video>
 		</div>
+        <div id="skip-container" style="display: none;">
+            <div class="skip-icon">S</div>
+            <div class="skip-text">Skip</div>
+        </div>
 	</div>
 
 		<!-- In-Game Setting Icon -->
@@ -77,6 +81,11 @@
 		<!-- Pixel Death Sound -->
 		<audio id="pixel-death-sound">
 			<source src="Soundfx/pixel-death-66829.mp3" type="audio/mpeg">
+		</audio>
+
+		<!-- Get Coin Sound -->
+		<audio id="get-coin-sound">
+			<source src="Soundfx/get-coin-351945.mp3" type="audio/mpeg">
 		</audio>
 
 		<!-- Game Over Sound -->
@@ -401,6 +410,80 @@
 			// Show loading screen
 			document.getElementById('loading-screen').style.display = 'flex';
 
+            const skipContainer = document.getElementById('skip-container');
+            let skipKeyHandler = null;
+            function showUIWhenGameReady() {
+                const ingameSettingIcon = document.getElementById('ingame-setting-icon');
+                const playerHearts = document.getElementById('player-hearts');
+                const loading = document.getElementById('loading-screen');
+                const menuEl = document.getElementById('game-menu');
+                const spaceshipEl = document.getElementById('spaceship-screen');
+                function checkReady() {
+                    const canvas = document.querySelector('canvas');
+                    const canvasReady = !!canvas && canvas.clientWidth > 0 && canvas.clientHeight > 0 && window.getComputedStyle(canvas).visibility !== 'hidden' && window.getComputedStyle(canvas).display !== 'none';
+                    const menuHidden = !!menuEl && window.getComputedStyle(menuEl).display === 'none';
+                    const spaceshipHidden = !!spaceshipEl && window.getComputedStyle(spaceshipEl).display === 'none';
+                    if (canvasReady && menuHidden && spaceshipHidden) {
+                        if (loading) loading.style.display = 'none';
+                        if (ingameSettingIcon) ingameSettingIcon.style.display = 'block';
+                        if (playerHearts) playerHearts.style.display = 'flex';
+                        return true;
+                    }
+                    return false;
+                }
+                if (!checkReady()) {
+                    const iv = setInterval(() => {
+                        if (checkReady()) clearInterval(iv);
+                    }, 100);
+                    setTimeout(() => { clearInterval(iv); }, 15000);
+                }
+            }
+            const finishIntro = () => {
+                const menu = document.getElementById('game-menu');
+                const spaceshipScreenEl = document.getElementById('spaceship-screen');
+                const outroVideoEl = document.getElementById('outro-video');
+                menu.style.transition = 'opacity 0.5s ease';
+                menu.style.opacity = '0';
+                setTimeout(() => {
+                    menu.style.display = 'none';
+                    if (spaceshipScreenEl) spaceshipScreenEl.style.display = 'none';
+                    if (outroVideoEl) outroVideoEl.pause();
+                    if (skipContainer) skipContainer.style.display = 'none';
+                    if (skipKeyHandler) window.removeEventListener('keydown', skipKeyHandler);
+                }, 500);
+                if (window.startC3Game) {
+                    requestAnimationFrame(() => {
+                        setTimeout(() => {
+                            window.startC3Game();
+                            showUIWhenGameReady();
+                        }, 50);
+                    });
+                } else {
+                    var checkInterval = setInterval(function() {
+                        if (window.startC3Game) {
+                            window.startC3Game();
+                            showUIWhenGameReady();
+                            clearInterval(checkInterval);
+                        }
+                    }, 100);
+                }
+            };
+            if (skipContainer) {
+                skipContainer.style.display = 'flex';
+                skipContainer.addEventListener('click', function(ev) {
+                    ev.stopPropagation();
+                    finishIntro();
+                });
+                skipKeyHandler = function(ev) {
+                    const k = (ev.key || '').toLowerCase();
+                    if (k === 's') {
+                        ev.preventDefault();
+                        finishIntro();
+                    }
+                };
+                window.addEventListener('keydown', skipKeyHandler);
+            }
+
 			// Wait 6 seconds then fade out
 			setTimeout(() => {
 				// Hide loading screen
@@ -420,6 +503,8 @@
 						menu.style.display = 'none';
 						spaceshipScreen.style.display = 'none';
 						if(outroVideo) outroVideo.pause();
+                        if (skipContainer) skipContainer.style.display = 'none';
+                        if (skipKeyHandler) window.removeEventListener('keydown', skipKeyHandler);
 						
 						// Show in-game setting icon
 						const ingameSettingIcon = document.getElementById('ingame-setting-icon');
@@ -440,16 +525,7 @@
 						requestAnimationFrame(() => {
 							setTimeout(() => {
                                 window.startC3Game();
-                                
-                                // Show UI elements ONLY when game starts
-                                setTimeout(() => {
-                                    const ingameSettingIcon = document.getElementById('ingame-setting-icon');
-                                    const playerHearts = document.getElementById('player-hearts');
-                                    
-                                    if (ingameSettingIcon) ingameSettingIcon.style.display = 'block';
-                                    if (playerHearts) playerHearts.style.display = 'flex';
-                                    console.log("UI Elements displayed with game start");
-                                }, 100); // Small delay to sync with game canvas appearing
+                                showUIWhenGameReady();
                             }, 50);
 						});
 					} else {
@@ -457,16 +533,7 @@
 						var checkInterval = setInterval(function() {
 							if (window.startC3Game) {
 								window.startC3Game();
-                                
-                                // Show UI elements ONLY when game starts
-                                setTimeout(() => {
-                                    const ingameSettingIcon = document.getElementById('ingame-setting-icon');
-                                    const playerHearts = document.getElementById('player-hearts');
-                                    
-                                    if (ingameSettingIcon) ingameSettingIcon.style.display = 'block';
-                                    if (playerHearts) playerHearts.style.display = 'flex';
-                                    console.log("UI Elements displayed with game start");
-                                }, 100);
+                                showUIWhenGameReady();
 
 								clearInterval(checkInterval);
 							}
@@ -490,23 +557,8 @@
 		// In-Game Setting Icon Logic
 		const ingameSettingIcon = document.getElementById('ingame-setting-icon');
 		
-		// Fallback: MutationObserver to ensure icon shows up if finishIntro logic is bypassed or delayed
 		const menu = document.getElementById('game-menu');
-		const observer = new MutationObserver(function(mutations) {
-			mutations.forEach(function(mutation) {
-				if (mutation.attributeName === "style") {
-					if (menu.style.display === 'none') {
-						if (settingModal.style.display !== 'flex') {
-							ingameSettingIcon.style.display = 'block';
-						}
-					} else {
-						ingameSettingIcon.style.display = 'none';
-					}
-				}
-			});
-		});
-		
-		observer.observe(menu, { attributes: true });
+		// Fallback MutationObserver removed to avoid showing UI too early
 
 		ingameSettingIcon.addEventListener('click', function(e) {
 			e.stopPropagation();
@@ -591,6 +643,8 @@
 		if (introSound) introSound.volume = sfxVolume; // Intro sound is also SFX
 		if (pixelDeathSound) pixelDeathSound.volume = sfxVolume;
 		if (gameOverSound) gameOverSound.volume = sfxVolume;
+		const getCoinSound = document.getElementById('get-coin-sound');
+		if (getCoinSound) getCoinSound.volume = sfxVolume;
 
 		sfxSlider.addEventListener('input', function(e) {
 			sfxVolume = e.target.value;
@@ -598,7 +652,20 @@
 			if (introSound) introSound.volume = sfxVolume;
 			if (pixelDeathSound) pixelDeathSound.volume = sfxVolume;
 			if (gameOverSound) gameOverSound.volume = sfxVolume;
+			if (getCoinSound) getCoinSound.volume = sfxVolume;
 		});
+
+		// Global function to play get coin sound (to be called by hooks)
+		window.onRewardPickup = function() {
+			try {
+				if (getCoinSound) {
+					getCoinSound.currentTime = 0;
+					getCoinSound.play().catch(() => {});
+				}
+			} catch (err) {
+				console.log("Play get-coin failed:", err);
+			}
+		};
 
 		menuButtons.forEach(btn => {
 			if (btn) {
