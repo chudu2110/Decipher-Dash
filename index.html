@@ -57,6 +57,7 @@
 			<img src="icons/heart%202.png" class="heart-icon" id="heart-2">
 			<img src="icons/heart%202.png" class="heart-icon" id="heart-3">
 		</div>
+		<div id="gem-counter" style="display: none;">0</div>
 
 		<!-- Menu Music -->
 		<audio id="menu-music" loop>
@@ -92,12 +93,22 @@
 		<audio id="game-over-sound">
 			<source src="Soundfx/game-over-417465.mp3" type="audio/mpeg">
 		</audio>
+		<!-- Level Passed Sound -->
+		<audio id="level-passed-sound">
+			<source src="Soundfx/level-passed-143039.mp3" type="audio/mpeg">
+		</audio>
 
 		<!-- Game Over Screen -->
 		<div id="game-over-screen" style="display: none;">
 			<img src="icons/You_Died.png" alt="You Died">
 			<div id="game-over-countdown"></div>
 			<button id="game-over-back-btn">BACK TO MENU</button>
+		</div>
+		<div id="you-win-screen" style="display: none;">
+			<img src="icons/win.png" alt="You Win" class="win-icon">
+			<img src="icons/cup.png" alt="Cup" class="cup-icon">
+			<div id="win-score-text">Your Highest Scores: 0</div>
+			<button id="you-win-back-btn">BACK TO MENU</button>
 		</div>
 
 		<div id="setting-modal" class="modal" style="display: none;">
@@ -190,8 +201,35 @@
 
 		// Global functions for Game Logic (to be called from C3 or detected)
 		window.playerLives = 3;
+		window.gemCount = 0;
+		window.gemTarget = 10;
+		window.updateGemCounter = function() {
+			const el = document.getElementById('gem-counter');
+			if (el) el.innerText = String(window.gemCount) + "/" + String(window.gemTarget);
+		};
+		window.stopGameMusic = function() {
+			try {
+				if (menuMusic) { menuMusic.pause(); menuMusic.currentTime = 0; menuMusic.loop = false; }
+				if (level1Music) { level1Music.pause(); level1Music.currentTime = 0; level1Music.loop = false; }
+			} catch (e) {}
+		};
+		window.stopAudioForWin = function() {
+			try {
+				[menuMusic, level1Music, introSound, clickSound, pixelDeathSound, gameOverSound, document.getElementById('get-coin-sound')]
+					.forEach(a => {
+						try {
+							if (a) {
+								a.pause();
+								a.currentTime = 0;
+								a.loop = false;
+							}
+						} catch (e) {}
+					});
+			} catch (e) {}
+		};
 
 		window.onPlayerDeath = function() {
+			if (window.isYouWinProcessing) return;
 			console.log("Player Death Triggered");
 			if (pixelDeathSound) {
 				pixelDeathSound.currentTime = 0;
@@ -316,9 +354,8 @@
 		window.onLevelRestart = function() {
 			console.log("Level Restart Triggered");
 			
-			// If lives are 0, do NOT restart the level music or logic normally,
-			// because we are in Game Over state.
-			if (window.playerLives <= 0) return;
+			// If lives are 0 or game is won, do NOT restart the level music
+			if (window.playerLives <= 0 || window.isGameWon) return;
 
 			// Note: We do NOT reset lives here, because restart happens on death.
 			// Only reset lives if it's a "Game Over" restart or manual restart from menu.
@@ -331,11 +368,14 @@
 		
 		// Function to reset game state (lives)
 		window.resetGame = function() {
+			window.isGameWon = false; // Reset win flag
 			window.playerLives = 3;
 			for (let i = 1; i <= 3; i++) {
 				const heart = document.getElementById('heart-' + i);
 				if (heart) heart.style.visibility = 'visible';
 			}
+			window.gemCount = 0;
+			window.updateGemCounter();
 			console.log("Game Reset: Lives restored");
 		};
 
@@ -427,6 +467,9 @@
                         if (loading) loading.style.display = 'none';
                         if (ingameSettingIcon) ingameSettingIcon.style.display = 'block';
                         if (playerHearts) playerHearts.style.display = 'flex';
+                        const gemCounter = document.getElementById('gem-counter');
+                        if (gemCounter) gemCounter.style.display = 'block';
+                        window.updateGemCounter();
                         return true;
                     }
                     return false;
@@ -456,6 +499,8 @@
                         setTimeout(() => {
                             window.startC3Game();
                             showUIWhenGameReady();
+                            const canvas = document.querySelector('canvas');
+                            if (canvas) { canvas.tabIndex = 0; canvas.focus(); }
                         }, 50);
                     });
                 } else {
@@ -463,6 +508,8 @@
                         if (window.startC3Game) {
                             window.startC3Game();
                             showUIWhenGameReady();
+                            const canvas = document.querySelector('canvas');
+                            if (canvas) { canvas.tabIndex = 0; canvas.focus(); }
                             clearInterval(checkInterval);
                         }
                     }, 100);
@@ -645,6 +692,8 @@
 		if (gameOverSound) gameOverSound.volume = sfxVolume;
 		const getCoinSound = document.getElementById('get-coin-sound');
 		if (getCoinSound) getCoinSound.volume = sfxVolume;
+		const levelPassedSound = document.getElementById('level-passed-sound');
+		if (levelPassedSound) levelPassedSound.volume = sfxVolume;
 
 		sfxSlider.addEventListener('input', function(e) {
 			sfxVolume = e.target.value;
@@ -653,17 +702,157 @@
 			if (pixelDeathSound) pixelDeathSound.volume = sfxVolume;
 			if (gameOverSound) gameOverSound.volume = sfxVolume;
 			if (getCoinSound) getCoinSound.volume = sfxVolume;
+			if (levelPassedSound) levelPassedSound.volume = sfxVolume;
 		});
 
 		// Global function to play get coin sound (to be called by hooks)
 		window.onRewardPickup = function() {
+			// If game is already won, do NOT play sound or process gem logic
+			if (window.isGameWon || window.isYouWinProcessing) return;
+			
 			try {
 				if (getCoinSound) {
 					getCoinSound.currentTime = 0;
 					getCoinSound.play().catch(() => {});
 				}
+				window.gemCount = Math.min((window.gemCount || 0) + 1, window.gemTarget);
+				window.updateGemCounter();
+				if (window.gemCount >= window.gemTarget) {
+					if (!window.isYouWinProcessing) {
+						window.isYouWinProcessing = true;
+						var __win_called = false;
+						var __call_win = function() {
+							if (!__win_called) {
+								__win_called = true;
+								if (typeof window.onYouWin === 'function') window.onYouWin();
+							}
+						};
+						if (getCoinSound && !getCoinSound.paused) {
+							// Use a fixed short delay (e.g. 500ms) to show Win screen faster, 
+							// while still allowing some of the coin sound to play.
+							setTimeout(__call_win, 500);
+						} else {
+							__call_win();
+						}
+					}
+				}
 			} catch (err) {
 				console.log("Play get-coin failed:", err);
+			}
+		};
+		
+		window.onYouWin = function() {
+			window.isGameWon = true; // Set flag to prevent restart logic
+			const youWinScreen = document.getElementById('you-win-screen');
+			const backBtn = document.getElementById('you-win-back-btn');
+			const winScoreText = document.getElementById('win-score-text');
+			
+			// Initial text before animation
+			if (winScoreText) {
+				winScoreText.innerText = "Your Highest Scores: 0";
+			}
+
+			if (youWinScreen) {
+				// Explicitly stop level 1 music by ID to ensure it stops
+				const l1Music = document.getElementById('level1-music');
+				if (l1Music) {
+					l1Music.loop = false;
+					l1Music.volume = 0;
+					l1Music.pause();
+					l1Music.currentTime = 0;
+				}
+				window.stopGameMusic();
+				window.stopAudioForWin();
+				youWinScreen.style.display = 'flex';
+				const ingameSettingIcon = document.getElementById('ingame-setting-icon');
+				const playerHearts = document.getElementById('player-hearts');
+				const gemCounter = document.getElementById('gem-counter');
+				if (ingameSettingIcon) ingameSettingIcon.style.display = 'none';
+				if (playerHearts) playerHearts.style.display = 'none';
+				if (gemCounter) gemCounter.style.display = 'none';
+				try {
+					const levelPassed = document.getElementById('level-passed-sound');
+					if (levelPassed) {
+						levelPassed.currentTime = 0;
+						levelPassed.muted = false;
+						levelPassed.volume = window.sfxVolume ?? 0.5;
+						levelPassed.load();
+						setTimeout(() => {
+							levelPassed.play().catch(()=>{});
+							
+							// Start Score Animation after Level Passed sound starts
+							if (winScoreText) {
+								let currentScore = 0;
+								const targetScore = window.gemCount || 0;
+								const duration = 1500; // Animation duration in ms
+								const stepTime = Math.max(50, duration / (targetScore || 1));
+								
+								if (targetScore > 0) {
+									setTimeout(() => {
+										const scoreInterval = setInterval(() => {
+											currentScore++;
+											winScoreText.innerText = "Your Highest Scores: " + currentScore;
+											
+											// Play click sound for each increment
+											if (clickSound) {
+												try {
+													// Clone node to allow overlapping sounds (rapid fire)
+													const clickClone = clickSound.cloneNode();
+													clickClone.volume = window.sfxVolume ?? 0.5;
+													// Use a promise-based play with error handling
+													var playPromise = clickClone.play();
+													if (playPromise !== undefined) {
+														playPromise.catch(error => {
+															// Fallback: try playing the main clickSound if clone fails
+															// (though main sound might be cut off, it's better than silence)
+															console.log("Clone play failed, trying main:", error);
+															clickSound.currentTime = 0;
+															clickSound.play().catch(e => {});
+														});
+													}
+												} catch (e) {
+													// Final fallback
+													clickSound.currentTime = 0;
+													clickSound.play().catch(()=>{});
+												}
+											}
+
+											if (currentScore >= targetScore) {
+												clearInterval(scoreInterval);
+											}
+										}, stepTime);
+									}, 500); // Wait 0.5s after Win screen appears
+								}
+							}
+						}, 50);
+					}
+				} catch (e) {}
+				try {
+					// Suspend Construct 3 runtime
+					if (window.c3_runtimeInterface) {
+						window.c3_runtimeInterface._GetLocalRuntime().SetTimeScale(0);
+					} else if (window.__c3_runtime) {
+						window.__c3_runtime.timeScale = 0;
+						window.__c3_runtime.SetTimeScale(0);
+					}
+					// Also try to pause the main loop if accessible
+					if (window.c3_runtime) {
+						window.c3_runtime.SetTimeScale(0);
+					}
+				} catch (e) {
+					console.log("Error stopping game runtime:", e);
+				}
+				if (backBtn) {
+					// Remove old listeners
+					const newBtn = backBtn.cloneNode(true);
+					backBtn.parentNode.replaceChild(newBtn, backBtn);
+					newBtn.addEventListener('click', (e) => {
+						e.stopPropagation();
+						setTimeout(() => {
+							location.reload();
+						}, 800);
+					});
+				}
 			}
 		};
 

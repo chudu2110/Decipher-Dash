@@ -498,6 +498,84 @@ html[ioswebview] .c3htmlwrap > * {
 	align-items: center;
 }
 
+#you-win-screen {
+	position: fixed;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background-color: black;
+	z-index: 200000;
+	display: none;
+	flex-direction: column;
+	justify-content: center;
+	align-items: center;
+}
+
+#you-win-screen .win-icon {
+	max-width: 60%;
+	max-height: 38%;
+	object-fit: contain;
+	filter: drop-shadow(0 0 20px #ffd700);
+	animation: pulse-win 2s infinite;
+	transform: translateY(-8%);
+}
+
+#you-win-screen .cup-icon {
+	max-width: 28%;
+	max-height: 22%;
+	object-fit: contain;
+	filter: drop-shadow(0 0 15px #ffd700);
+	animation: pulse-win 2s infinite;
+	margin-top: 0;
+	transform: translateY(-60%);
+}
+
+#win-score-text {
+	font-family: 'Press Start 2P', cursive;
+	color: #ffd700;
+	font-size: 1.5em;
+	text-align: center;
+	margin-top: -5%; /* Pull up closer to cup */
+	margin-bottom: 20px;
+	text-shadow: 2px 2px #000;
+	z-index: 200001;
+	transform: translateY(-60%); /* Match cup displacement */
+}
+
+@keyframes pulse-win {
+	0% { transform: translateY(-60%) scale(1); filter: drop-shadow(0 0 20px #ffd700); }
+	50% { transform: translateY(-60%) scale(1.05); filter: drop-shadow(0 0 30px #ffd700); }
+	100% { transform: translateY(-60%) scale(1); filter: drop-shadow(0 0 20px #ffd700); }
+}
+
+#you-win-back-btn {
+	position: absolute;
+	bottom: 12%;
+	left: 50%;
+	transform: translateX(-50%);
+	padding: 15px 30px;
+	font-family: 'Press Start 2P', monospace;
+	font-size: 18px;
+	color: #ffd700;
+	background: transparent;
+	border: 4px solid #ffd700;
+	box-shadow: 0 0 10px #ffd700, inset 0 0 10px #ffd700;
+	text-transform: uppercase;
+	cursor: pointer;
+	z-index: 200002;
+	transition: all 0.2s ease-in-out;
+	text-shadow: 0 0 5px #ffd700;
+	display: block;
+}
+
+#you-win-back-btn:hover {
+	background: #ffd700;
+	color: #000;
+	box-shadow: 0 0 20px #ffd700, inset 0 0 20px #ffd700;
+	transform: translateX(-50%) scale(1.1);
+}
+
 #game-over-countdown {
 	position: absolute;
 	bottom: 20%; /* Moved down */
@@ -604,6 +682,26 @@ html[ioswebview] .c3htmlwrap > * {
 	filter: drop-shadow(0 0 5px #ffd700);
 }
 
+.gem-counter {
+	font-family: 'Press Start 2P', monospace;
+	color: #ffd700;
+	text-shadow: 0 0 5px #ffd700;
+	font-size: 24px;
+}
+
+#gem-counter {
+	position: fixed;
+	top: 70px;
+	left: 20px;
+	z-index: 99999;
+	display: none;
+	font-family: 'Press Start 2P', monospace;
+	color: #ffd700;
+	font-size: 32px;
+	text-shadow: 0 0 6px #ffd700;
+	line-height: 1;
+	user-select: none;
+}
 .volume-slider::-moz-range-thumb {
 	width: 20px; /* Smaller thumb */
 	height: 20px;

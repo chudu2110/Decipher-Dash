@@ -141,6 +141,8 @@
                 const shapeActs = window.C3.Plugins.Shape3D?.Acts;
                 const eightDirActs = window.C3.Behaviors?.EightDir?.Acts;
                 const keyboardCnds = window.C3.Plugins?.Keyboard?.Cnds;
+                const gamepadCnds = window.C3.Plugins?.gamepad?.Cnds;
+                const systemExps = window.C3.Plugins?.System?.Exps;
                 if (spriteActs?.Destroy && !spriteActs.Destroy.hooked) {
                     const original = spriteActs.Destroy;
                     spriteActs.Destroy = function(...args) {
@@ -168,6 +170,7 @@
                     shapeActs.Destroy.hooked = true;
                 }
                 
+                
                 window.__hookedDestroyOnce = true;
             } catch (err) {
                 console.warn("Error hooking destroy acts: ", err);
@@ -182,6 +185,7 @@
         const menu = document.getElementById('game-menu');
         const icon = document.getElementById('ingame-setting-icon');
         const hearts = document.getElementById('player-hearts');
+        const gemCounter = document.getElementById('gem-counter');
         const settingModal = document.getElementById('setting-modal');
         const canvas = document.querySelector('canvas');
         if (menu && icon && hearts && settingModal) {
@@ -205,9 +209,13 @@
                     hearts.style.visibility = "visible";
                     hearts.style.opacity = "1";
                 }
+                if (gemCounter && gemCounter.style.display !== 'block') {
+                    gemCounter.style.display = 'block';
+                }
             } else {
                 if (icon.style.display !== 'none') icon.style.display = 'none';
                 if (hearts.style.display !== 'none') hearts.style.display = 'none';
+                if (gemCounter && gemCounter.style.display !== 'none') gemCounter.style.display = 'none';
             }
         }
     }, 500);
@@ -221,6 +229,9 @@
                     const originalDestroy = self.IInstance.prototype.destroy;
                     self.IInstance.prototype.destroy = function(...args) {
                         try {
+                            if (!window.__c3_runtime && this?.runtime) {
+                                window.__c3_runtime = this.runtime;
+                            }
                             const objName = String(this?.objectType?.name || "").toLowerCase();
                             if (objName.includes('gem') || objName.includes('reward')) {
                                 if (window.onRewardPickup) window.onRewardPickup();
